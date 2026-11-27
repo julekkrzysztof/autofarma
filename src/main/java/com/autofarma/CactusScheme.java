@@ -13,7 +13,7 @@ import java.util.Map;
 public final class CactusScheme {
     public static final int WIDTH = 16;
     public static final int DEPTH = 16;
-    public static final int DEFAULT_FLOORS = 7;
+    public static final int MIN_FLOORS = 1;
     public static final int MAX_FLOORS = 30;
 
     private CactusScheme() {}

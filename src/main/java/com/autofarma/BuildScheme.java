@@ -58,14 +58,6 @@ public record BuildScheme(String name, int width, int height, int depth, List<Ca
             if (name.isBlank() || name.length() > 64) {
                 throw new IOException("Nazwa schematu musi mieć od 1 do 64 znaków.");
             }
-            int width = requiredInt(root, "width");
-            int height = requiredInt(root, "height");
-            int depth = requiredInt(root, "depth");
-            if (width < 1 || width > 16 || depth < 1 || depth > 16
-                    || height < 1 || height > MAX_DIMENSION) {
-                throw new IOException("Wymiary schematu muszą mieścić się w zakresie 1–16 × 1–256 × 1–16.");
-            }
-
             JsonArray blocks = root.getAsJsonArray("blocks");
             if (blocks == null || blocks.isEmpty() || blocks.size() > MAX_PLACEMENTS) {
                 throw new IOException("Schemat musi zawierać od 1 do " + MAX_PLACEMENTS + " bloków.");
@@ -73,14 +65,14 @@ public record BuildScheme(String name, int width, int height, int depth, List<Ca
 
             List<CactusScheme.Placement> placements = new ArrayList<>(blocks.size());
             Set<Long> occupied = new HashSet<>();
+            int maxX = -1;
+            int maxY = -1;
+            int maxZ = -1;
             for (JsonElement element : blocks) {
                 JsonObject block = element.getAsJsonObject();
                 int x = requiredInt(block, "x");
                 int y = requiredInt(block, "y");
                 int z = requiredInt(block, "z");
-                if (x < 0 || x >= width || y < 0 || y >= height || z < 0 || z >= depth) {
-                    throw new IOException("Blok schematu znajduje się poza zadeklarowanymi wymiarami.");
-                }
                 long key = ((long) x << 40) | ((long) y << 20) | z;
                 if (!occupied.add(key)) throw new IOException("Schemat zawiera powtórzone pozycje bloków.");
 
@@ -92,6 +84,24 @@ public record BuildScheme(String name, int width, int height, int depth, List<Ca
                     throw new IOException("Blok nie może zostać postawiony z przedmiotu: " + id);
                 }
                 placements.add(new CactusScheme.Placement(x, y, z, blockType));
+                maxX = Math.max(maxX, x);
+                maxY = Math.max(maxY, y);
+                maxZ = Math.max(maxZ, z);
+            }
+
+            int width = optionalInt(root, "width", maxX + 1);
+            int height = optionalInt(root, "height", maxY + 1);
+            int depth = optionalInt(root, "depth", maxZ + 1);
+            if (width < 1 || width > 16 || depth < 1 || depth > 16
+                    || height < 1 || height > MAX_DIMENSION) {
+                throw new IOException("Wymiary schematu muszą mieścić się w zakresie 1–16 × 1–256 × 1–16.");
+            }
+            for (CactusScheme.Placement placement : placements) {
+                if (placement.x() < 0 || placement.x() >= width
+                        || placement.y() < 0 || placement.y() >= height
+                        || placement.z() < 0 || placement.z() >= depth) {
+                    throw new IOException("Blok schematu znajduje się poza zadeklarowanymi wymiarami.");
+                }
             }
 
             return new BuildScheme(name, width, height, depth, placements);
@@ -122,6 +132,21 @@ public record BuildScheme(String name, int width, int height, int depth, List<Ca
         JsonElement element = json.get(key);
         if (element == null || !element.isJsonPrimitive() || !element.getAsJsonPrimitive().isNumber()) {
             throw new IOException("Brak liczbowego pola '" + key + "'.");
+        }
+        try {
+            return element.getAsBigDecimal().intValueExact();
+        } catch (ArithmeticException exception) {
+            throw new IOException("Pole '" + key + "' musi być liczbą całkowitą.", exception);
+        }
+    }
+
+    private static int optionalInt(JsonObject json, String key, int inferred) throws IOException {
+        JsonElement element = json.get(key);
+        if (element == null) {
+            return inferred;
+        }
+        if (!element.isJsonPrimitive() || !element.getAsJsonPrimitive().isNumber()) {
+            throw new IOException("Pole '" + key + "' musi być liczbą całkowitą.");
         }
         try {
             return element.getAsBigDecimal().intValueExact();

@@ -159,6 +159,13 @@ public final class AutoFarmManager {
     }
 
     public void importScheme(ServerPlayerEntity player, String fileName, String json) {
+        if (fileName == null || !fileName.toLowerCase(java.util.Locale.ROOT).endsWith(".json")) {
+            player.sendMessage(Text.literal(
+                    "§cMożna dodawać tylko pliki schematu .json."
+            ), false);
+            return;
+        }
+
         String safeName = fileName.replaceFirst("(?i)\\.json$", "");
 
         if (!safeName.matches("[A-Za-z0-9_-]{1,48}")) {
