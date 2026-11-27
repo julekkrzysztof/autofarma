@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "id": "autofarm",
+  "version": "${version}",
+  "name": "AutoFarm",
+  "description": "Automatically builds a deterministic, multi-level cactus farm.",
+  "authors": ["AutoFarma"],
+  "environment": "*",
+  "entrypoints": {
+    "main": ["com.autofarma.AutoFarmMod"],
+    "client": ["com.autofarma.AutoFarmClient"]
+  },
+  "depends": {
+    "fabricloader": ">=0.20.1",
+    "minecraft": "~1.21.4",
+    "java": ">=21",
+    "fabric-api": "*"
+  }
+}
